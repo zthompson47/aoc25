@@ -38,9 +38,12 @@ fn part2(batteries: Vec<Vec<u64>>) -> u64 {
         .map(|bank| {
             let mut joltage = [0; 12];
             for i in 0..bank.len() {
+                // Try replacing furthest left digit in joltage as the remaining bank allows.
                 for j in 12usize.saturating_sub(bank.len() - i)..12 {
                     if bank[i] > joltage[j] {
                         joltage[j] = bank[i];
+                        // Reset digits to right of new digit.  They must come from after new
+                        // digit in bank to keep order.
                         if j < joltage.len() {
                             joltage[j + 1..].iter_mut().for_each(|x| *x = 0);
                         }
