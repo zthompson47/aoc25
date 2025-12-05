@@ -61,14 +61,17 @@ fn remove_paper(grid: &mut Grid) -> Option<usize> {
     let paper: Vec<(isize, isize)> = grid
         .iter()
         .filter(|((_, _), (adjacent, paper))| *paper && *adjacent < 4)
-        .map(|(coord, _)| *coord)
+        .map(|(&coord, _)| coord)
         .collect();
-    let len = paper.len();
-    for coord in paper {
+    for coord in &paper {
         for x in adjacent(coord.0, coord.1) {
             grid.get_mut(&x).unwrap().0 -= 1;
         }
-        grid.get_mut(&coord).unwrap().1 = false;
+        grid.get_mut(coord).unwrap().1 = false;
     }
-    if len > 0 { Some(len) } else { None }
+    if paper.is_empty() {
+        None
+    } else {
+        Some(paper.len())
+    }
 }
