@@ -44,46 +44,71 @@ fn main() {
         .collect();
     box_pairs.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
 
+    let (mut part1, mut part2): (Option<usize>, Option<usize>) = (None, None);
+
     // Create circuits out of pairs with shortest distance.
-    for (circuit_id, pair) in box_pairs.iter().take(connections).enumerate() {
-        let (mut box_a, mut box_b) = (pair.0.borrow_mut(), pair.1.borrow_mut());
-        if let Some(circuit_a) = box_a.circuit
-            && let Some(circuit_b) = box_b.circuit
+    for (idx, pair) in box_pairs.iter().enumerate() {
         {
-            // Merge two circuits, without mangling references when scanning original list.
-            drop(box_a);
-            drop(box_b);
-            for junction_box in boxes.iter() {
-                let circuit = junction_box.borrow().circuit;
-                if let Some(circuit) = circuit
-                    && circuit == circuit_a
-                {
-                    junction_box.borrow_mut().circuit = Some(circuit_b);
+            let (mut box_a, mut box_b) = (pair.0.borrow_mut(), pair.1.borrow_mut());
+            if let Some(circuit_a) = box_a.circuit
+                && let Some(circuit_b) = box_b.circuit
+            {
+                // Merge two circuits, without mangling references when scanning original list.
+                drop(box_a);
+                drop(box_b);
+                for junction_box in boxes.iter() {
+                    let circuit = junction_box.borrow().circuit;
+                    if let Some(circuit) = circuit
+                        && circuit == circuit_a
+                    {
+                        junction_box.borrow_mut().circuit = Some(circuit_b);
+                    }
+                }
+            } else if let Some(existing_circuit) = box_a.circuit {
+                // Join circuit.
+                box_b.circuit = Some(existing_circuit);
+            } else if let Some(existing_circuit) = box_b.circuit {
+                // Join circuit.
+                box_a.circuit = Some(existing_circuit);
+            } else {
+                // New circuit.
+                box_a.circuit = Some(idx);
+                box_b.circuit = Some(idx);
+            }
+        }
+
+        // Part 1: get result after specified number of connections.
+        if idx + 1 == connections {
+            // Calculate size of each circuit and find largest.
+            let mut count = HashMap::<usize, usize>::new();
+            for b in boxes.iter() {
+                if let Some(c) = b.borrow().circuit {
+                    count.entry(c).and_modify(|c| *c += 1).or_insert(1);
                 }
             }
-        } else if let Some(existing_circuit) = box_a.circuit {
-            // Join circuit.
-            box_b.circuit = Some(existing_circuit);
-        } else if let Some(existing_circuit) = box_b.circuit {
-            // Join circuit.
-            box_a.circuit = Some(existing_circuit);
-        } else {
-            // New circuit.
-            box_a.circuit = Some(circuit_id);
-            box_b.circuit = Some(circuit_id);
+            let mut count: Vec<usize> = count.values().copied().collect();
+            count.sort_by(|a, b| b.cmp(a));
+            part1 = Some(count.iter().take(3).product());
+        }
+
+        // Part2: stop when all boxes are in one circuit.
+        let mut boxes = boxes.iter();
+        let mut all_connected = false;
+        if let Some(circuit_id) = boxes.next().unwrap().borrow().circuit {
+            all_connected = true;
+            for b in boxes {
+                if b.borrow().circuit.is_none() || b.borrow().circuit.unwrap() != circuit_id {
+                    all_connected = false;
+                    break;
+                }
+            }
+        }
+        if all_connected {
+            part2 = Some(pair.0.borrow().x * pair.1.borrow().x);
+            break;
         }
     }
 
-    // Calculate size of each circuit and find largest.
-    let mut count = HashMap::<usize, usize>::new();
-    for b in boxes.iter() {
-        if let Some(c) = b.borrow().circuit {
-            count.entry(c).and_modify(|c| *c += 1).or_insert(1);
-        }
-    }
-    let mut part1: Vec<usize> = count.values().copied().collect();
-    part1.sort_by(|a, b| b.cmp(a));
-    let part1: usize = part1.iter().take(3).product();
-
-    println!("Part 1: {part1}");
+    println!("Part 1: {}", part1.unwrap());
+    println!("Part 2: {}", part2.unwrap());
 }
