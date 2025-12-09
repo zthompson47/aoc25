@@ -17,20 +17,15 @@ fn main() {
 }
 
 trait Pairs<T> {
-    fn pairs(&self) -> Vec<(T, T)>
-    where
-        T: Clone + Copy;
+    fn pairs(&self) -> Vec<(&T, &T)>;
 }
 
 impl<T> Pairs<T> for Vec<T> {
-    fn pairs(&self) -> Vec<(T, T)>
-    where
-        T: Clone + Copy,
-    {
+    fn pairs(&self) -> Vec<(&T, &T)> {
         (0..self.len() - 1)
             .flat_map(|x| {
                 (x + 1..self.len())
-                    .map(move |y| (self[x], self[y]))
+                    .map(|y| (&self[x], &self[y]))
                     .collect::<Vec<_>>()
             })
             .collect()
