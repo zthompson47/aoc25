@@ -10,13 +10,8 @@ fn main() {
                 .unwrap()
         })
         .collect();
-    let max_area = tiles
-        .pairs()
-        .iter()
-        .map(|(a, b)| ((a.0 - b.0 + 1) * (a.1 - b.1 + 1)).abs())
-        .max()
-        .unwrap();
-    println!("Part 1: {max_area}");
+    println!("Part 1: {}", max_area(tiles.pairs()));
+    // 4781546175
 
     // Find red tile with no other red tile above or to the left.
     // Tiles directly above and to left of this red tile must be other color, outside of loop.
@@ -160,11 +155,6 @@ fn main() {
             Direction::W => (tile.0 - 1, tile.1),
         })
         .for_each(|o| {
-            /*if o == (7, 4) {
-                println!(
-                    "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! {tile:?} {directions:?}"
-                );
-            }*/
             outside.insert(o);
         });
     }
@@ -178,8 +168,6 @@ fn main() {
         pairs.insert(p);
     }
 
-    //println!("{pairs:?}");
-
     for o in &outside {
         let mut invalid = Vec::new();
         for p in &pairs {
@@ -189,35 +177,25 @@ fn main() {
                 && o.1 <= a.1.max(b.1)
                 && o.1 >= a.1.min(b.1)
             {
-                //println!("removing: {p:?}, because {o:?}");
                 invalid.push(*p);
             }
         }
         for o in invalid {
             pairs.remove(&o);
         }
-        //println!(".._> {}", pairs.len());
     }
 
-    let max_area = pairs
-        .iter()
-        .map(|(a, b)| {
-            let area = ((a.0 - b.0).abs() + 1) * ((a.1 - b.1).abs() + 1);
-            //println!("({a:?}, {b:?}) {area}");
-            area
-        })
-        .max()
-        .unwrap();
-    println!("Part 2: {max_area}");
+    println!("Part 2: {}", max_area(pairs));
     // WRONG 1565694816
+    // RIGHT 1573359081
+}
 
-    //println!("outside: {outside:?}");
-    //println!("red: {red:?}");
-    //println!("border: {border:?}");
-
-    //println!("{upper_left:?} {next_tile:?} {rotation:?}");
-
-    //println!("===============>>>>>>>> {}", outside.len() * tiles.pairs().len());
+fn max_area<'a>(pairs: impl IntoIterator<Item = (&'a (i64, i64), &'a (i64, i64))>) -> i64 {
+    pairs
+        .into_iter()
+        .map(|(a, b)| ((a.0 - b.0).abs() + 1) * ((a.1 - b.1).abs() + 1))
+        .max()
+        .unwrap()
 }
 
 #[derive(Debug)]
