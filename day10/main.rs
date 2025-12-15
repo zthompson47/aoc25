@@ -1,5 +1,5 @@
 fn main() {
-    let machines: Vec<Machine> = include_str!("test.txt")
+    let machines: Vec<Machine> = include_str!("input.txt")
         .lines()
         .map(Machine::from)
         .collect();
@@ -10,25 +10,38 @@ fn part1(machines: &[Machine]) -> usize {
     machines
         .iter()
         .map(|machine| {
-            let mut i = 0;
-            'out: loop {
-                i += 1;
-                for buttons in choose(i, &machine.buttons) {
-                    if machine.is_solution(buttons) {
-                        break 'out i;
+            for count in 1..=machine.buttons.len() {
+                for sequence in choose(count, &machine.buttons) {
+                    if machine.is_solution(sequence) {
+                        return count;
                     }
                 }
             }
+            unreachable!()
         })
         .sum()
 }
 
-fn choose<T>(number: usize, list: &[T]) -> Vec<&[T]> {
-    let result = Vec::new();
-    for i in number..list.len() {
-
+fn choose<T>(number: usize, list: &[T]) -> Vec<Vec<&T>> {
+    assert_ne!(number, 0);
+    assert!(number <= list.len());
+    if number == 1 {
+        list.iter().map(|x| Vec::from([x])).collect()
+    } else {
+        list[..=list.len() - number]
+            .iter()
+            .enumerate()
+            .flat_map(|(idx, v)| {
+                choose(number - 1, &list[idx + 1..])
+                    .into_iter()
+                    .map(|mut sequence| {
+                        sequence.push(v);
+                        sequence
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect()
     }
-    result
 }
 
 #[derive(Debug, Default)]
@@ -40,7 +53,7 @@ struct Machine {
 }
 
 impl Machine {
-    fn is_solution(&self, buttons: &[Vec<usize>]) -> bool {
+    fn is_solution(&self, buttons: Vec<&Vec<usize>>) -> bool {
         let mut solution = vec![false; self.solution.len()];
         for button in buttons {
             for i in button {
@@ -52,9 +65,6 @@ impl Machine {
 }
 
 impl From<&str> for Machine {
-    // [.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
-    // [...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
-    // [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
     fn from(line: &str) -> Self {
         let mut parts = line.split(' ');
         let solution = parts
