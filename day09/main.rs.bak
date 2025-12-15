@@ -125,7 +125,11 @@ fn main() {
         })
         .map(|(a, b)| {
 
-            let area = ((a.0 - b.0 + 1) * (a.1 - b.1 + 1)).abs();
+            // WRONG
+            //let area = ((a.0 - b.0 + 1) * (a.1 - b.1 + 1)).abs();
+            // WOULD HAVE WORKED with correct area formula:
+            let area = ((a.0 - b.0).abs() + 1) * ((a.1 - b.1).abs() + 1);
+
             //println!("AAREA {area}, {a:?} {b:?}");
             area
 
