@@ -13,7 +13,7 @@ fn main() {
     println!("Part 1: {}", max_area(tiles.pairs()));
     // 4781546175
 
-    // Find red tile with no other red tile above or to the left.
+    // Find top-most red tile to the left of (or even with) all other tiles.
     // Tiles directly above and to left of this red tile must be other color, outside of loop.
     let min_column = tiles.iter().map(|x| x.0).min().unwrap();
     let min_row = tiles
@@ -43,6 +43,7 @@ fn main() {
         _ => unreachable!(),
     };
 
+    // Find list of tiles directly outside of the red/green tile border.
     let mut outside: HashSet<(i64, i64)> = HashSet::new();
     let mut border: Vec<(i64, i64)> = Vec::new();
     let mut red: HashMap<(i64, i64), Red> = HashMap::new();
@@ -56,6 +57,7 @@ fn main() {
     {
         let direction = relative_direction(prior_tile, *tile);
 
+        // Store entry and exit directions for each red tile.
         red.entry(prior_tile)
             .and_modify(|t| t.direction_out = Some(direction))
             .or_insert(Red {
@@ -69,8 +71,10 @@ fn main() {
                 direction_out: None,
             });
 
+        // Red tiles are part of the border.
         border.push(*tile);
 
+        // Draw green border tiles connecting the red tiles.
         match direction {
             Direction::N => {
                 assert_eq!(prior_tile.0, tile.0);
@@ -121,12 +125,14 @@ fn main() {
         prior_tile = *tile;
     }
 
+    // Add outside tiles at corners of red tiles.
     for (tile, directions) in red {
         [
             directions.direction_in.unwrap().opposite(),
             directions.direction_out.unwrap(),
         ]
         .iter()
+        // Start with all possible outside tiles.
         .map(|d| match d {
             Direction::N => match rotation {
                 Rotation::Clockwise => Direction::W,
@@ -145,6 +151,7 @@ fn main() {
                 Rotation::Counterclockwise => Direction::N,
             },
         })
+        // The green entry/exit tiles at corners are not outside.
         .filter(|d| {
             *d != directions.direction_in.unwrap() && *d != directions.direction_out.unwrap()
         })
@@ -159,15 +166,16 @@ fn main() {
         });
     }
 
+    // Check if borders are directly adjacent to each other with no outside tiles in between.
+    // (Doesn't happen in this puzzle.)
     for b in &border {
         outside.remove(b);
     }
 
-    let mut pairs = HashSet::new();
-    for p in tiles.pairs() {
-        pairs.insert(p);
-    }
+    // Put tiles in `HashSet` for easy removal (by value, not index).
+    let mut pairs = HashSet::<_>::from_iter(tiles.pairs());
 
+    // Remove pairs whose rectangle contains any outside tiles.
     for o in &outside {
         let mut invalid = Vec::new();
         for p in &pairs {
@@ -186,6 +194,7 @@ fn main() {
     }
 
     println!("Part 2: {}", max_area(pairs));
+    // WRONG 1573323843
     // WRONG 1565694816
     // RIGHT 1573359081
 }

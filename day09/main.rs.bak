@@ -14,11 +14,13 @@ fn main() {
     let max_area = tiles
         .pairs()
         .iter()
-        .map(|(a, b)| ((a.0 - b.0 + 1) * (a.1 - b.1 + 1)).abs())
+        //.map(|(a, b)| ((a.0 - b.0 + 1) * (a.1 - b.1 + 1)).abs())
+        .map(|(a, b)| ((a.0 - b.0).abs() + 1) * ((a.1 - b.1).abs() + 1))
         .max()
         .unwrap();
     println!("Part 1: {max_area}");
 
+    /*
     let mut i = 0;
     for t in tiles.pairs().iter() {
         for tt in tiles.iter() {
@@ -27,6 +29,7 @@ fn main() {
     }
     println!("++.> {i} <.**");
     panic!();
+    */
 
     let border = draw_border(&tiles);
 
