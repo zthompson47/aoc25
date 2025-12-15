@@ -1,0 +1,448 @@
+use std::{collections::HashMap, ops::Range};
+
+fn main() {
+    let input = include_str!("input.txt");
+    let tiles: Vec<(i64, i64)> = input
+        .lines()
+        .map(|x| {
+            x.split_once(',')
+                .map(|(r, c)| (r.parse().unwrap(), c.parse().unwrap()))
+                .unwrap()
+        })
+        .collect();
+
+    let max_area = tiles
+        .pairs()
+        .iter()
+        .map(|(a, b)| ((a.0 - b.0 + 1) * (a.1 - b.1 + 1)).abs())
+        .max()
+        .unwrap();
+    println!("Part 1: {max_area}");
+
+    let mut i = 0;
+    for t in tiles.pairs().iter() {
+        for tt in tiles.iter() {
+            i += 1;
+        }
+    }
+    println!("++.> {i} <.**");
+    panic!();
+
+    let border = draw_border(&tiles);
+
+    /*
+    for t in tiles.iter() {
+        let b = border.get(t).unwrap();
+        if !(b.n == Some(Region::Outside)
+            || b.e == Some(Region::Outside)
+            || b.s == Some(Region::Outside)
+            || b.w == Some(Region::Outside))
+        {
+            println!("?????????????????????????????????????????");
+        }
+    }
+    */
+    //panic!();
+
+    let max_area = tiles
+        .pairs()
+        .iter()
+        .filter(|(a, b)| {
+            let corner_a = border.get(a).unwrap();
+            let corner_b = border.get(b).unwrap();
+
+            if a.0 < b.0
+                && !(corner_a.s == Some(Region::Inside) && corner_b.n == Some(Region::Inside))
+            {
+//                println!("0=====> {a:?} {b:?}");
+//                println!("......> {corner_a:?} {corner_b:?}");
+                return false;
+            }
+
+            if a.0 > b.0
+                && !(corner_a.n == Some(Region::Inside) && corner_b.s == Some(Region::Inside))
+            {
+//                println!("1=====> {a:?} {b:?}");
+//                println!("......> {corner_a:?} {corner_b:?}");
+                return false;
+            }
+
+            if a.1 < b.1
+                && !(corner_a.e == Some(Region::Inside) && corner_b.w == Some(Region::Inside))
+            {
+//                println!("2=====> {a:?} {b:?}");
+//                println!("......> {corner_a:?} {corner_b:?}");
+                return false;
+            }
+
+            if a.1 > b.1
+                && !(corner_a.w == Some(Region::Inside) && corner_b.e == Some(Region::Inside))
+            {
+//                println!("3=====> {a:?} {b:?}");
+//                println!("......> {corner_a:?} {corner_b:?}");
+                return false;
+            }
+//            println!("----------{a:?}--------------{b:?}----------------");
+
+            for row in range_from_endpoints(a.0, b.0) {
+                if let Some(border) = border.get(&(row, a.1))
+                    && (border.n != Some(Region::Inside) || border.s != Some(Region::Inside))
+                {
+//                    println!("0000000000000000000");
+                    return false;
+                }
+                if let Some(border) = border.get(&(row, b.1))
+                    && (border.n != Some(Region::Inside) || border.s != Some(Region::Inside))
+                {
+//                    println!("1111111111111111111 {row}, {} -- {border:?}", b.1);
+                    return false;
+                }
+                if tiles.contains(&(row, a.1)) || tiles.contains(&(row, b.1)) {
+                    //println!("!!!!!!!!!!!!!!!!!!!!!  row ..");
+                }
+            }
+            for column in range_from_endpoints(a.1, b.1) {
+                if let Some(border) = border.get(&(a.0, column))
+                    && (border.e != Some(Region::Inside) || border.w != Some(Region::Inside))
+                {
+//                    println!("2222222222222222222");
+                    return false;
+                }
+                if let Some(border) = border.get(&(b.0, column))
+                    && (border.e != Some(Region::Inside) || border.w != Some(Region::Inside))
+                {
+//                    println!("3333333333333333333");
+                    return false;
+                }
+                if tiles.contains(&(a.0, column)) || tiles.contains(&(b.0, column)) {
+                    //println!("!!!!!!!!!!!!!!!!!!!!! .. col");
+                }
+            }
+            true
+        })
+        .map(|(a, b)| {
+
+            let area = ((a.0 - b.0 + 1) * (a.1 - b.1 + 1)).abs();
+            //println!("AAREA {area}, {a:?} {b:?}");
+            area
+
+        })
+        .max()
+        .unwrap();
+    println!("Part 2: {max_area}");
+}
+
+fn range_from_endpoints(x: i64, y: i64) -> Range<i64> {
+    match x.cmp(&y) {
+        std::cmp::Ordering::Less => x + 1..y,
+        std::cmp::Ordering::Equal => 0..0,
+        std::cmp::Ordering::Greater => y + 1..x,
+    }
+}
+
+#[derive(Debug)]
+struct Border {
+    n: Option<Region>,
+    e: Option<Region>,
+    s: Option<Region>,
+    w: Option<Region>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Region {
+    Inside,
+    Outside,
+    Left,
+    Right,
+}
+
+#[derive(Debug)]
+enum Direction {
+    North,
+    East,
+    South,
+    West,
+}
+
+fn draw_border(tiles: &[(i64, i64)]) -> HashMap<(i64, i64), Border> {
+    let mut border = HashMap::new();
+
+    let mut tiles_iter = tiles.iter();
+    let first_tile = tiles_iter.next().unwrap();
+    let mut prior_tile = first_tile;
+
+    for tile in tiles_iter.chain([first_tile]) {
+        let direction = match (prior_tile.0.cmp(&tile.0), prior_tile.1.cmp(&tile.1)) {
+            (std::cmp::Ordering::Equal, std::cmp::Ordering::Less) => Direction::East,
+            (std::cmp::Ordering::Equal, std::cmp::Ordering::Greater) => Direction::West,
+            (std::cmp::Ordering::Less, std::cmp::Ordering::Equal) => Direction::South,
+            (std::cmp::Ordering::Greater, std::cmp::Ordering::Equal) => Direction::North,
+            _ => unreachable!(),
+        };
+        match direction {
+            Direction::North => {
+                assert_eq!(prior_tile.1, tile.1);
+                for row in tile.0 + 1..prior_tile.0 {
+                    if row == 3 && prior_tile.1 == 3 {
+//                        println!("_00_________________????????????????????????????????????????");
+                    }
+                    border.insert(
+                        (row, prior_tile.1),
+                        Border {
+                            n: Some(Region::Inside),
+                            e: Some(Region::Right),
+                            s: Some(Region::Inside),
+                            w: Some(Region::Left),
+                        },
+                    );
+                }
+            }
+            Direction::East => {
+                assert_eq!(prior_tile.0, tile.0);
+                for column in prior_tile.1 + 1..tile.1 {
+                    if prior_tile.0 == 3 && column == 3 {
+//                        println!("_11_________________????????????????????????????????????????");
+                    }
+                    border.insert(
+                        (prior_tile.0, column),
+                        Border {
+                            n: Some(Region::Left),
+                            e: Some(Region::Inside),
+                            s: Some(Region::Right),
+                            w: Some(Region::Inside),
+                        },
+                    );
+                }
+            }
+            Direction::South => {
+                assert_eq!(prior_tile.1, tile.1);
+                for row in prior_tile.0 + 1..tile.0 {
+                    if row == 3 && prior_tile.1 == 3 {
+//                        println!("_22_________________????????????????????????????????????????");
+                    }
+                    border.insert(
+                        (row, prior_tile.1),
+                        Border {
+                            n: Some(Region::Inside),
+                            e: Some(Region::Left),
+                            s: Some(Region::Inside),
+                            w: Some(Region::Right),
+                        },
+                    );
+                }
+            }
+            Direction::West => {
+                assert_eq!(prior_tile.0, tile.0);
+                for column in tile.1 + 1..prior_tile.1 {
+                    if prior_tile.0 == 3 && column == 3 {
+//                        println!("_33_________________????????????????????????????????????????");
+                    }
+                    border.insert(
+                        (prior_tile.0, column),
+                        Border {
+                            n: Some(Region::Right),
+                            e: Some(Region::Inside),
+                            s: Some(Region::Left),
+                            w: Some(Region::Inside),
+                        },
+                    );
+                }
+            }
+        }
+
+        border
+            .entry(*prior_tile)
+            .and_modify(|x: &mut Border| match direction {
+                Direction::North => {
+                    x.n = Some(Region::Inside);
+                    if x.e != Some(Region::Inside) {
+                        x.e = Some(Region::Right);
+                    }
+                    if x.w != Some(Region::Inside) {
+                        x.w = Some(Region::Left);
+                    }
+                }
+                Direction::East => {
+                    x.e = Some(Region::Inside);
+                    if x.s != Some(Region::Inside) {
+                        x.s = Some(Region::Right);
+                    }
+                    if x.n != Some(Region::Inside) {
+                        x.n = Some(Region::Left);
+                    }
+                }
+                Direction::South => {
+                    x.s = Some(Region::Inside);
+                    if x.w != Some(Region::Inside) {
+                        x.w = Some(Region::Right);
+                    }
+                    if x.e != Some(Region::Inside) {
+                        x.e = Some(Region::Left);
+                    }
+                }
+                Direction::West => {
+                    x.w = Some(Region::Inside);
+                    if x.n != Some(Region::Inside) {
+                        x.n = Some(Region::Right);
+                    }
+                    if x.s != Some(Region::Inside) {
+                        x.s = Some(Region::Left);
+                    }
+                }
+            })
+            .or_insert(match direction {
+                Direction::North => Border {
+                    n: Some(Region::Inside),
+                    e: Some(Region::Right),
+                    s: None,
+                    w: Some(Region::Left),
+                },
+                Direction::East => Border {
+                    n: Some(Region::Left),
+                    e: Some(Region::Inside),
+                    s: Some(Region::Right),
+                    w: None,
+                },
+                Direction::South => Border {
+                    n: None,
+                    e: Some(Region::Left),
+                    s: Some(Region::Inside),
+                    w: Some(Region::Right),
+                },
+                Direction::West => Border {
+                    n: Some(Region::Right),
+                    e: None,
+                    s: Some(Region::Left),
+                    w: Some(Region::Inside),
+                },
+            });
+
+        border
+            .entry(*tile)
+            .and_modify(|x: &mut Border| match direction {
+                Direction::North => {
+                    x.s = Some(Region::Inside);
+                    if x.e != Some(Region::Inside) {
+                        x.e = Some(Region::Right);
+                    }
+                    if x.w != Some(Region::Inside) {
+                        x.w = Some(Region::Left);
+                    }
+                }
+                Direction::East => {
+                    x.w = Some(Region::Inside);
+                    if x.s != Some(Region::Inside) {
+                        x.s = Some(Region::Right);
+                    }
+                    if x.n != Some(Region::Inside) {
+                        x.n = Some(Region::Left);
+                    }
+                }
+                Direction::South => {
+                    x.n = Some(Region::Inside);
+                    if x.w != Some(Region::Inside) {
+                        x.w = Some(Region::Right);
+                    }
+                    if x.e != Some(Region::Inside) {
+                        x.e = Some(Region::Left);
+                    }
+                }
+                Direction::West => {
+                    x.e = Some(Region::Inside);
+                    if x.n != Some(Region::Inside) {
+                        x.n = Some(Region::Right);
+                    }
+                    if x.s != Some(Region::Inside) {
+                        x.s = Some(Region::Left);
+                    }
+                }
+            })
+            .or_insert(match direction {
+                Direction::North => Border {
+                    n: None,
+                    e: Some(Region::Right),
+                    s: Some(Region::Inside),
+                    w: Some(Region::Left),
+                },
+                Direction::East => Border {
+                    n: Some(Region::Left),
+                    e: None,
+                    s: Some(Region::Right),
+                    w: Some(Region::Inside),
+                },
+                Direction::South => Border {
+                    n: Some(Region::Inside),
+                    e: Some(Region::Left),
+                    s: None,
+                    w: Some(Region::Right),
+                },
+                Direction::West => Border {
+                    n: Some(Region::Right),
+                    e: Some(Region::Inside),
+                    s: Some(Region::Left),
+                    w: None,
+                },
+            });
+
+        prior_tile = tile;
+    }
+
+    let top_row = tiles.iter().map(|x| x.0).min().unwrap();
+    let top_column = tiles
+        .iter()
+        .filter(|x| x.0 == top_row)
+        .map(|x| x.1)
+        .min()
+        .unwrap();
+    let outside = border.get(&(top_row, top_column)).unwrap().w.unwrap();
+    let inside = match outside {
+        Region::Inside => unreachable!(),
+        Region::Outside => unreachable!(),
+        Region::Left => Region::Right,
+        Region::Right => Region::Left,
+    };
+
+    for val in border.values_mut() {
+        if val.n == Some(outside) {
+            val.n = Some(Region::Outside);
+        } else if val.n == Some(inside) {
+            val.n = Some(Region::Inside);
+        }
+        if val.e == Some(outside) {
+            val.e = Some(Region::Outside);
+        } else if val.e == Some(inside) {
+            val.e = Some(Region::Inside);
+        }
+        if val.s == Some(outside) {
+            val.s = Some(Region::Outside);
+        } else if val.s == Some(inside) {
+            val.s = Some(Region::Inside);
+        }
+        if val.w == Some(outside) {
+            val.w = Some(Region::Outside);
+        } else if val.w == Some(inside) {
+            val.w = Some(Region::Inside);
+        }
+    }
+
+    //println!("{:?} {:?}", tiles.first().unwrap(), border.get(tiles.first().unwrap()));
+    //println!("{:?} {:?}", tiles.last().unwrap(), border.get(tiles.last().unwrap()));
+
+    border
+}
+
+trait Pairs<T> {
+    fn pairs(&self) -> Vec<(&T, &T)>;
+}
+
+impl<T> Pairs<T> for Vec<T> {
+    fn pairs(&self) -> Vec<(&T, &T)> {
+        (0..self.len() - 1)
+            .flat_map(|x| {
+                (x + 1..self.len())
+                    .map(|y| (&self[x], &self[y]))
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+}
